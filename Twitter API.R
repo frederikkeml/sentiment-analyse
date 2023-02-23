@@ -1,7 +1,7 @@
 ### Twitter API ###
 
 #### Setting up the environment ####
-setwd("~/Documents/Dataanalyse/Bachelor")
+setwd("path")
 
 require(httr)
 require(jsonlite)
@@ -13,7 +13,6 @@ library(mongolite)
 library(ggplot2)
 library(syuzhet)
 library(rpart)
-#library("googledrive")
 
 #### Forbind til Twitter API ####
 
@@ -22,16 +21,12 @@ bearertoken <- Sys.getenv("AAAAAAAAAAAAAAAAAAAAAGN0jAEAAAAASvEvdMB4VyRmThek0xYvs
 headers <- c(`Authorization` = sprintf('Bearer %s', bearertoken))
 
 access_token <- '1590297873060708359-870HzrqJG61sU38TZaeX5Zx9EDMFor'
-access_secret <- 'oucdKviVtIs5zc2XKi7TOVBZ1ZjOPqoxtCcFAoRuQ4KRS'
+access_secret <- 'secret'
 
 bearer_token<-'AAAAAAAAAAAAAAAAAAAAAGN0jAEAAAAASvEvdMB4VyRmThek0xYvsj3XpU4%3D6NP2TRf3k9eiY351TSjk73YHijiacCNRipyI9bMZ3Oj1YhmmjM'
 
 ## Først skal man connecte til Twitter API med auth_setup_default()
 auth_get()
-
-## Connect til Google Drive ## 
-#drive_find(n_max = 30)
-
 
 #### Test af indhentning af tweets #### 
 
@@ -46,7 +41,6 @@ keyword_test_no <- search_tweets("crypto", lang = "no", include_rts = FALSE, n=5
 
 #Tager kun dato og tekst 
 keyword_test_eng1 <- keyword_test_eng[c(1, 4)]
-
 
 ## load tweets by accout handle 
 example_user<-search_tweets("example_user", n=50)
@@ -262,7 +256,7 @@ mongo_mean_ethereum$import(file('mean_ethereum.txt','r'))
 #### Handelsvolumen #### 
 
 #Henter datasættet 
-query_result <- read.csv("~/Documents/Dataanalyse/Bachelor/query_result_2023-01-01T15_12_14.712409Z.csv")
+query_result <- read.csv("path")
 
 # Fjerner alle rækker med Fiat 
 query_result <- query_result %>%
@@ -309,28 +303,12 @@ colnames(df_total_handel)[colnames(df_total_handel) == "sum"] <- "Handelsvolumen
 
 ## Lineær Regression ##
 
-
-#Opdeling i træning- og testdata
-#80% træningsdata 
-train_index <- sample(1:nrow(df_total_handel), 0.8 * nrow(df_total_handel))
-train <- df_total_handel[train_index, ]
-test <- df_total_handel[-train_index, ]
-
-#Definerer variablerne 
-y<-df_total_handel$Handelsvolumen
-x1<-df_total_handel$`Crypto Sentiment`
-x2<-df_total_handel$`Crypto NO Sentiment`
-x3<-df_total_handel$`Bitcoin Sentiment`
-
-## Simpel LM ##
-
-
 lm_simple<-lm(y ~x1 + x2 +x3, data=df_total_handel)
 summary(lm_simple) 
 summary(lm_simple)$r.squared 
 
 ## LM med træning/test ##
-lm_train <- lm(y ~ x1 + x2 +x3, data = train)
+lm_train <- lm_simple(y ~ x1 + x2 +x3, data = train)
 
 # Make predictions on the test set
 predictions <- predict(lm_test, newdata = test)
@@ -341,7 +319,6 @@ mean_response <- mean(test$Handelsvolumen)
 sum_squared_total <- sum((test$Handelsvolumen - mean_response)^2)
 
 R_squared <- 1 - (sum_squared_residuals / sum_squared_total)
-
 
 ## Gemmer dataframen ##
 write.csv(df_total_handel, file = "df_total_handel.csv")
@@ -396,7 +373,8 @@ predictions_btc <- predict(regtree_btc, newdata = df_btc_handel)
 
 # Remove the row with the date "2023-01-01"
 crypto_sentiment <- subset(crypto_sentiment, Date != "2023-01-01")
-# Fjerner årstallet 
+
+# Fjerner årstallet med regex
 crypto_sentiment$Date <- gsub("^\\d{4}-", "", crypto_sentiment$Date)
 
 #Plot
@@ -410,7 +388,8 @@ ggplot(data=crypto_sentiment,
 
 # Remove the row with the date "2023-01-01"
 crypto_no_sentiment <- subset(crypto_no_sentiment, Date != "2023-01-01")
-# Fjerner årstallet 
+
+# Fjerner årstallet med Regex
 crypto_no_sentiment$Date <- gsub("^\\d{4}-", "", crypto_no_sentiment$Date)
 
 #Plot
@@ -422,9 +401,11 @@ ggplot(data=crypto_no_sentiment,
 
 
 ### Bitcoin score###
+
 # Remove the row with the date "2023-01-01"
 bitcoin_sentiment <- subset(bitcoin_sentiment, Date != "2023-01-01")
-# Fjerner årstallet 
+
+# Fjerner årstallet med regex
 bitcoin_sentiment$Date <- gsub("^\\d{4}-", "", bitcoin_sentiment$Date)
 
 #Plot
@@ -449,41 +430,3 @@ ggplot(samlet_sentiment, aes(Date)) +
   ggtitle("Gennemsnitlige sentiment score")+
   labs(x="Dato",y="Sentiment Score")
                      
-       
-#### Test af andre sentiment analyser ####
-get_sentiments("afinn")
-get_sentiments("bing")
-
-get_nrc_sentiment(crypto_tweets$full_text[1])
-
-tokens <- tibble(text = crypto_tweets$full_text) %>% unnest_tokens(word, text)
-
-token_test<- tokens <- tibble(text = crypto_tweets$full_text)
-
-
-### Spacy ### 
-library(reticulate)
-library(spacyr)
-
-
-# Run spacy_install() first
-spacy_initialize()
-
-#Installer spacy model med Norsk Bokmål
-spacy_download_langmodel("nb")
-
-#Tester en spacy funktion 
-test<-spacy_parse(bitcoin_tweets$full_text[1])
-
-# Run this function at the end 
-spacy_finalize()
-
-
-#### Automatisering ####
-library(sass)
-library(cronR)
-
-
-
-#### Drive ####
-## drive_upload(kw_crypto_1412.txt, path=Dataanalyse/Bachelor_projekt/filer)
